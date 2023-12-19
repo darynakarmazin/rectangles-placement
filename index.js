@@ -1,43 +1,53 @@
-// Зчитати JSON файл
-const blocksData = require("./blocks.json");
-const containerSize = { width: 350, height: 300 };
+const list = document.querySelector(".container");
+console.log(list);
 
-// Функція для обчислення площі прямокутника
-function calculateArea(rectangle) {
-  return rectangle.width * rectangle.height;
+// fetch("./data/block.json")
+//   .then((response) => response.json())
+//   .then((data) => {
+//     const result = data
+//       .map((block, index) => {
+//         return `<div class="block" style="height:${block.height}px; width:${block.width}px;">${index}</div>`;
+//       })
+//       .join(" ");
+//     console.log(typeof result);
+//     console.log(result);
+//     list.innerHTML = result;
+//   });
+
+async function fetchBlocksJSON() {
+  const response = await fetch("./data/block.json");
+  const blocks = await response.json();
+  return blocks;
 }
 
-// Сортування блоків за площею
-blocksData.sort((a, b) => calculateArea(b) - calculateArea(a));
+const blocks = await fetchBlocksJSON();
+// console.log(blocks);
 
-// Створення матриці
-const containerMatrix = Array.from({ length: containerSize.height }, () =>
-  Array(containerSize.width).fill(0)
-);
+const colors = {}; // Об'єкт для зберігання кольорів
 
-const blockCoordinates = [];
+const result = blocks
+  .map((block, index) => {
+    const sizeKey = `${block.width}-${block.height}`;
 
-for (const block of blocksData) {
-  // Логіка розміщення блоків
-  // ...
+    // Генерація унікального кольору для блока
+    const color = colors[sizeKey] || getRandomColor();
+    colors[sizeKey] = color;
+
+    return `<div class="block" style="height:${block.height}px; width:${block.width}px; background-color:${color};">${index}</div>`;
+  })
+  .join(" ");
+
+// console.log(typeof result);
+// console.log(result);
+
+function getRandomColor() {
+  // Генерація випадкового кольору
+  const letters = "0123456789ABCDEF";
+  let color = "#";
+  for (let i = 0; i < 6; i++) {
+    color += letters[Math.floor(Math.random() * 16)];
+  }
+  return color;
 }
 
-// Оновлення контейнеру та розрахунок fullness
-const fullness = calculateFullness(containerMatrix);
-
-function calculateFullness(matrix) {
-  const emptySpace = matrix.reduce(
-    (acc, row) => acc + row.filter((cell) => cell === 0).length,
-    0
-  );
-
-  const totalSpace = containerSize.width * containerSize.height;
-  const usedSpace = totalSpace - emptySpace;
-
-  return 1 - emptySpace / (usedSpace + emptySpace);
-}
-
-const result = {
-  fullness,
-  blockCoordinates,
-};
+list.innerHTML = result;
