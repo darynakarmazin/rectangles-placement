@@ -1,5 +1,4 @@
-// 1.Читання вхідних даних:
-
+// 1. Читання вхідних даних:
 // Зчитати JSON файл з параметрами прямокутних блоків.
 // Зчитати розмір контейнера.
 
@@ -25,9 +24,10 @@ async function fetchBlocksJSON() {
   const blocks = await response.json();
   return blocks;
 }
+
 const blocksData = await fetchBlocksJSON();
 
-// 2.Ініціалізація алгоритму:
+// 2. Ініціалізація алгоритму:
 // Сортування блоків за площею.
 blocksData.sort((a, b) => b.width * b.height - a.width * a.height);
 
@@ -35,54 +35,41 @@ console.log(blocksData);
 
 // 3. Розміщення блоків в контейнері:
 function placeBlocksInContainer(blocks, containerWidth, containerHeight) {
-  const gridSize = 10; // Розмір сітки для розташування блоків
-  const gridWidth = Math.ceil(containerWidth / gridSize);
-  const gridHeight = Math.ceil(containerHeight / gridSize);
-  const grid = new Array(gridHeight)
-    .fill(null)
-    .map(() => new Array(gridWidth).fill(null));
-
   const placedBlocks = [];
+  let currentX = 0;
+  let currentY = containerHeight;
 
   for (const block of blocks) {
-    const blockWidthInGrid = Math.ceil(block.width / gridSize);
-    const blockHeightInGrid = Math.ceil(block.height / gridSize);
+    if (currentX + block.width <= containerWidth) {
+      // Розмістити блок на поточній позиції
+      const placedBlock = {
+        ...block,
+        x: currentX,
+        y: currentY - block.height,
+      };
+      placedBlocks.push(placedBlock);
 
-    for (let row = 0; row < gridHeight - blockHeightInGrid + 1; row++) {
-      for (let col = 0; col < gridWidth - blockWidthInGrid + 1; col++) {
-        let canPlace = true;
+      // Оновити поточні координати
+      currentX += block.width;
+    } else {
+      // Перейти на новий рядок
+      currentX = 0;
+      currentY -= block.height;
 
-        for (let i = 0; i < blockHeightInGrid; i++) {
-          for (let j = 0; j < blockWidthInGrid; j++) {
-            if (grid[row + i][col + j] !== null) {
-              canPlace = false;
-              break;
-            }
-          }
-          if (!canPlace) break;
-        }
+      // Розмістити блок на новому рядку
+      const placedBlock = {
+        ...block,
+        x: currentX,
+        y: currentY - block.height,
+      };
+      placedBlocks.push(placedBlock);
 
-        if (canPlace) {
-          for (let i = 0; i < blockHeightInGrid; i++) {
-            for (let j = 0; j < blockWidthInGrid; j++) {
-              grid[row + i][col + j] = block;
-            }
-          }
-
-          const placedBlock = {
-            ...block,
-            x: col * gridSize,
-            y: row * gridSize,
-          };
-          placedBlocks.push(placedBlock);
-          break;
-        }
-      }
-      if (placedBlocks.length === blocks.length) break;
+      // Оновити поточні координати
+      currentX += block.width;
     }
   }
 
-  return { blocks: placedBlocks, gridSize };
+  return { blocks: placedBlocks };
 }
 
 const placementResult = placeBlocksInContainer(
@@ -90,6 +77,7 @@ const placementResult = placeBlocksInContainer(
   containerWidth,
   containerHeight
 );
+console.log(placementResult.blocks);
 
 const colors = {};
 function getRandomColor() {
@@ -100,8 +88,6 @@ function getRandomColor() {
   }
   return color;
 }
-
-console.log(placementResult.blocks);
 
 const result = placementResult.blocks
   .map((block, index) => {
