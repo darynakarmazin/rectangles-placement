@@ -1,13 +1,10 @@
 .container {
+  box-sizing: border-box;
   width: 100vw;
   height: 100vh;
-  display: flex;
-  align-items: flex-end;
-  flex-wrap: wrap;
 }
 
 .block {
-  background-color: blueviolet;
   border: 1px solid lightgrey;
   display: flex;
   align-items: center;
