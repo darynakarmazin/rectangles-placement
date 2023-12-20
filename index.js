@@ -1,4 +1,3 @@
-// 1. Читання вхідних даних:
 // Зчитати JSON файл з параметрами прямокутних блоків.
 // Зчитати розмір контейнера.
 
@@ -16,7 +15,7 @@ window.addEventListener("resize", () => {
   list.style.width = `${containerWidth}px`;
   list.style.height = `${containerHeight}px`;
 
-  console.log(`Ширина: ${containerWidth}, Висота: ${containerHeight}`);
+  // console.log(`Ширина: ${containerWidth}, Висота: ${containerHeight}`);
 });
 
 async function fetchBlocksJSON() {
@@ -25,15 +24,59 @@ async function fetchBlocksJSON() {
   return blocks;
 }
 
+function calculateInnerEmptySpace(containerWidth, containerHeight, blocks) {
+  let emptySpace = 0;
+
+  for (let i = 0; i < blocks.length; i++) {
+    for (let j = i + 1; j < blocks.length; j++) {
+      const intersectWidth =
+        Math.min(blocks[i].right, blocks[j].right) -
+        Math.max(blocks[i].left, blocks[j].left);
+      const intersectHeight =
+        Math.min(blocks[i].bottom, blocks[j].bottom) -
+        Math.max(blocks[i].top, blocks[j].top);
+
+      if (intersectWidth > 0 && intersectHeight > 0) {
+        emptySpace += intersectWidth * intersectHeight;
+      }
+    }
+  }
+
+  return emptySpace;
+}
+
+function calculateTotalSpace(containerWidth, containerHeight, blocks) {
+  const containerArea = containerWidth * containerHeight;
+  const blocksArea = blocks.reduce(
+    (acc, block) =>
+      acc + (block.right - block.left) * (block.bottom - block.top),
+    0
+  );
+
+  return containerArea - blocksArea;
+}
+
+function calculateFullness(containerWidth, containerHeight, blocks) {
+  const innerEmptySpace = calculateInnerEmptySpace(
+    containerWidth,
+    containerHeight,
+    blocks
+  );
+  const totalSpace = calculateTotalSpace(
+    containerWidth,
+    containerHeight,
+    blocks
+  );
+
+  return 1 - innerEmptySpace / (innerEmptySpace + totalSpace);
+}
+
 const blocksData = await fetchBlocksJSON();
 
-// 2. Ініціалізація алгоритму:
 // Сортування блоків за площею.
 blocksData.sort((a, b) => b.width * b.height - a.width * a.height);
 
-console.log(blocksData);
-
-// 3. Розміщення блоків в контейнері:
+// Розміщення блоків в контейнері:
 function placeBlocksInContainer(blocks, containerWidth, containerHeight) {
   const placedBlocks = [];
   let currentX = 0;
@@ -44,8 +87,10 @@ function placeBlocksInContainer(blocks, containerWidth, containerHeight) {
       // Розмістити блок на поточній позиції
       const placedBlock = {
         ...block,
-        x: currentX,
-        y: currentY - block.height,
+        left: currentX,
+        top: currentY - block.height,
+        right: currentX + block.width,
+        bottom: currentY,
       };
       placedBlocks.push(placedBlock);
 
@@ -59,8 +104,10 @@ function placeBlocksInContainer(blocks, containerWidth, containerHeight) {
       // Розмістити блок на новому рядку
       const placedBlock = {
         ...block,
-        x: currentX,
-        y: currentY - block.height,
+        left: currentX,
+        top: currentY - block.height,
+        right: currentX + block.width,
+        bottom: currentY,
       };
       placedBlocks.push(placedBlock);
 
@@ -77,7 +124,6 @@ const placementResult = placeBlocksInContainer(
   containerWidth,
   containerHeight
 );
-console.log(placementResult.blocks);
 
 const colors = {};
 function getRandomColor() {
@@ -89,12 +135,31 @@ function getRandomColor() {
   return color;
 }
 
-const result = placementResult.blocks
-  .map((block, index) => {
-    const sizeKey = `${block.width}-${block.height}`;
-    const color = colors[sizeKey] || getRandomColor();
-    colors[sizeKey] = color;
-    return `<div class="block" style="height:${block.height}px; width:${block.width}px; background-color:${color}; position: absolute; top:${block.y}px; left:${block.x}px;">${index}</div>`;
-  })
-  .join(" ");
-list.innerHTML = result;
+function renderBlocks(placedBlocks) {
+  const result = placedBlocks
+    .map((block, index) => {
+      const sizeKey = `${block.right - block.left}-${block.bottom - block.top}`;
+      const color = colors[sizeKey] || getRandomColor();
+      colors[sizeKey] = color;
+      return `<div class="block" style="height:${
+        block.bottom - block.top
+      }px; width:${
+        block.right - block.left
+      }px; background-color:${color}; position: absolute; top:${
+        block.top
+      }px; left:${block.left}px;">${index}</div>`;
+    })
+    .join(" ");
+  list.innerHTML = result;
+}
+
+renderBlocks(placementResult.blocks);
+
+const fullness = calculateFullness(
+  containerWidth,
+  containerHeight,
+  placementResult.blocks
+);
+
+console.log("Fullness:", fullness);
+console.log("blockCoordinates:", placementResult.blocks);
