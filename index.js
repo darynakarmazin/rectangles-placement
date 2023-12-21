@@ -1,6 +1,3 @@
-// Зчитати JSON файл з параметрами прямокутних блоків.
-// Зчитати розмір контейнера.
-
 const list = document.querySelector(".container");
 
 let containerHeight = document.documentElement.clientHeight;
@@ -14,8 +11,6 @@ window.addEventListener("resize", () => {
   containerWidth = document.documentElement.clientWidth;
   list.style.width = `${containerWidth}px`;
   list.style.height = `${containerHeight}px`;
-
-  // console.log(`Ширина: ${containerWidth}, Висота: ${containerHeight}`);
 });
 
 async function fetchBlocksJSON() {
@@ -83,36 +78,46 @@ function placeBlocksInContainer(blocks, containerWidth, containerHeight) {
   let currentY = containerHeight;
 
   for (const block of blocks) {
-    if (currentX + block.width <= containerWidth) {
-      // Розмістити блок на поточній позиції
+    let rotatedWidth = block.width;
+    let rotatedHeight = block.height;
+
+    if (block.rotation === 90 || block.rotation === 270) {
+      rotatedWidth = block.height;
+      rotatedHeight = block.width;
+    }
+
+    if (
+      currentX + rotatedWidth <= containerWidth &&
+      currentY - rotatedHeight >= 0
+    ) {
       const placedBlock = {
         ...block,
         left: currentX,
-        top: currentY - block.height,
-        right: currentX + block.width,
-        bottom: currentY,
+        top: containerHeight - currentY,
+        right: currentX + rotatedWidth,
+        bottom: containerHeight - currentY + rotatedHeight,
       };
       placedBlocks.push(placedBlock);
 
-      // Оновити поточні координати
-      currentX += block.width;
+      currentX += rotatedWidth;
     } else {
-      // Перейти на новий рядок
       currentX = 0;
-      currentY -= block.height;
+      currentY -= rotatedHeight;
 
-      // Розмістити блок на новому рядку
+      if (currentY < 0) {
+        throw new Error("Unable to place all blocks within the container.");
+      }
+
       const placedBlock = {
         ...block,
         left: currentX,
-        top: currentY - block.height,
-        right: currentX + block.width,
-        bottom: currentY,
+        top: containerHeight - currentY,
+        right: currentX + rotatedWidth,
+        bottom: containerHeight - currentY + rotatedHeight,
       };
       placedBlocks.push(placedBlock);
 
-      // Оновити поточні координати
-      currentX += block.width;
+      currentX += rotatedWidth;
     }
   }
 
@@ -147,7 +152,9 @@ function renderBlocks(placedBlocks) {
         block.right - block.left
       }px; background-color:${color}; position: absolute; top:${
         block.top
-      }px; left:${block.left}px;">${index}</div>`;
+      }px; left:${block.left}px;"><div style="transform: rotate(${
+        block.rotation
+      }deg);">${index}</div></div>`;
     })
     .join(" ");
   list.innerHTML = result;
